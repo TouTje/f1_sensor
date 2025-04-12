@@ -1,0 +1,10 @@
+{
+    "domain": "f1_sensor",
+    "name": "F1 Sensor",
+    "version": "0.0.1",
+    "documentation": "https://github.com/Nicxe/f1_sensor",
+    "requirements": [],
+    "dependencies": [],
+    "codeowners": [],
+    "config_flow": true
+  }
