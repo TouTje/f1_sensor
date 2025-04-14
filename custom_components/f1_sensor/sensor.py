@@ -7,23 +7,23 @@ from .const import DOMAIN
 import datetime
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
-    """Skapa sensorer när integrationen läggs till."""
+    """Create sensors when the integration is added."""
     data_dict = hass.data[DOMAIN][entry.entry_id]
 
-    # Koordinatorer från __init__.py
+    # Coordinators from __init__.py
     race_coordinator = data_dict["race_coordinator"]
     driver_coordinator = data_dict["driver_coordinator"]
     constructor_coordinator = data_dict["constructor_coordinator"]
 
     base_name = entry.data.get("sensor_name", "F1")
 
-    # Skapa redan befintliga sensorer
+    # Create already existing sensors
     sensors = [
         F1NextRaceSensor(race_coordinator, f"{base_name}_next_race"),
         F1CurrentSeasonSensor(race_coordinator, f"{base_name}_current_season"),
         F1DriverStandingsSensor(driver_coordinator, f"{base_name}_driver_standings"),
 
-        # Ny sensor för konstruktörsställning
+        # New sensor for constructor standings
         F1ConstructorStandingsSensor(constructor_coordinator, f"{base_name}_constructor_standings"),
     ]
 
@@ -31,13 +31,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
-    """Sensor som returnerar datum/tid (ISO8601) för nästa race i 'state'."""
+    """Sensor that returns date/time (ISO8601) for the next race in 'state'."""
 
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
         self._attr_name = sensor_name
         self._attr_unique_id = f"{sensor_name}_unique"
-        self._attr_icon = "mdi:flag-checkered"  # valfri ikon
+        self._attr_icon = "mdi:flag-checkered"  # optional icon
 
     def _get_next_race(self):
         data = self.coordinator.data
@@ -75,7 +75,7 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
-        """Visa start-tiden för nästa race (ISO8601) i state."""
+        """Show the start time for the next race (ISO8601) in state."""
         next_race = self._get_next_race()
         if not next_race:
             return None
@@ -123,9 +123,9 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
 
 class F1CurrentSeasonSensor(CoordinatorEntity, SensorEntity):
     """
-    Sensor som visar info om hela säsongen.
-    - state = antal race
-    - attribut = säsong, race-lista osv
+    Sensor that shows info about the entire season.
+    - state = number of races
+    - attributes = season, race list, etc.
     """
 
     def __init__(self, coordinator, sensor_name):
@@ -161,9 +161,9 @@ class F1CurrentSeasonSensor(CoordinatorEntity, SensorEntity):
 
 class F1DriverStandingsSensor(CoordinatorEntity, SensorEntity):
     """
-    Sensor för att exponera Driver Standings.
-    - state = antal förare
-    - attribut = driver_standings (lista), season, round
+    Sensor to expose Driver Standings.
+    - state = number of drivers
+    - attributes = driver_standings (list), season, round
     """
 
     def __init__(self, coordinator, sensor_name):
@@ -209,9 +209,9 @@ class F1DriverStandingsSensor(CoordinatorEntity, SensorEntity):
 
 class F1ConstructorStandingsSensor(CoordinatorEntity, SensorEntity):
     """
-    Ny sensor för att exponera Constructor Standings.
-    - state = antal constructors
-    - attribut = constructor_standings (lista), season, round
+    New sensor to expose Constructor Standings.
+    - state = number of constructors
+    - attributes = constructor_standings (list), season, round
     """
 
     def __init__(self, coordinator, sensor_name):
