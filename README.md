@@ -67,6 +67,17 @@ If the button above does not work, you can also perform the following steps manu
 <a href="https://buymeacoffee.com/niklasv" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
 
 
+## ☕ Support the API that makes this possible
+
+This integration relies entirely on the amazing [Jolpica-F1 API](https://github.com/jolpica/jolpica-f1), which provides high-quality and up-to-date Formula 1 data for free.
+
+If you find this integration useful, please consider supporting the creator of the API by donating to their Ko-fi page:
+
+➡️ [https://ko-fi.com/jolpic](https://ko-fi.com/jolpic)
+
+Without this API, this integration would not be possible, so any support helps keep it alive and maintained. 🙏
+
+
 ## Example Screenshots
 [This display](https://github.com/Nicxe/esphome) uses the sensors from this integration to show upcoming Formula 1 races.
 
