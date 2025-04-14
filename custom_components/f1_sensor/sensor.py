@@ -8,29 +8,38 @@ import datetime
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Skapa sensorer när integrationen läggs till."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    data_dict = hass.data[DOMAIN][entry.entry_id]
 
-    # Hämta användarens val av sensornamn från config_flow.
+    # Koordinatorer från __init__.py
+    race_coordinator = data_dict["race_coordinator"]
+    driver_coordinator = data_dict["driver_coordinator"]
+    constructor_coordinator = data_dict["constructor_coordinator"]
+
     base_name = entry.data.get("sensor_name", "F1")
 
+    # Skapa redan befintliga sensorer
     sensors = [
-        F1NextRaceSensor(coordinator, f"{base_name}_next_race"),
-        F1CurrentSeasonSensor(coordinator, f"{base_name}_current_season"),
+        F1NextRaceSensor(race_coordinator, f"{base_name}_next_race"),
+        F1CurrentSeasonSensor(race_coordinator, f"{base_name}_current_season"),
+        F1DriverStandingsSensor(driver_coordinator, f"{base_name}_driver_standings"),
+
+        # Ny sensor för konstruktörsställning
+        F1ConstructorStandingsSensor(constructor_coordinator, f"{base_name}_constructor_standings"),
     ]
+
     async_add_entities(sensors, True)
 
 
 class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
-    """En sensor som visar och exponerar data för nästa kommande race."""
+    """Sensor som returnerar datum/tid (ISO8601) för nästa race i 'state'."""
 
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
         self._attr_name = sensor_name
         self._attr_unique_id = f"{sensor_name}_unique"
-        self._attr_icon = "mdi:flag-checkered"  # Ikon för nästa race
+        self._attr_icon = "mdi:flag-checkered"  # valfri ikon
 
     def _get_next_race(self):
-        """Returnera dict för nästa kommande race eller None om inga fler race."""
         data = self.coordinator.data
         if not data:
             return None
@@ -53,7 +62,6 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
         return None
 
     def combine_date_time(self, date_str, time_str):
-        """Bygger ISO8601-sträng av datum och tid (eller None)."""
         if not date_str:
             return None
         if not time_str:
@@ -61,16 +69,13 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
         dt_str = f"{date_str}T{time_str}".replace("Z", "+00:00")
         try:
             dt = datetime.datetime.fromisoformat(dt_str)
-            return dt.isoformat()  # ex: 2025-03-22T07:00:00+00:00
+            return dt.isoformat()
         except ValueError:
             return None
 
     @property
     def state(self):
-        """
-        Returnera racets start-tid som ISO8601-string.
-        Ex: 2025-04-13T15:00:00+00:00
-        """
+        """Visa start-tiden för nästa race (ISO8601) i state."""
         next_race = self._get_next_race()
         if not next_race:
             return None
@@ -78,7 +83,6 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Returnera alla relevanta attribut för nästa race."""
         race = self._get_next_race()
         if not race:
             return {}
@@ -86,7 +90,6 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
         circuit = race.get("Circuit", {})
         location = circuit.get("Location", {})
 
-        # Sessioner
         first_practice = race.get("FirstPractice", {})
         second_practice = race.get("SecondPractice", {})
         third_practice = race.get("ThirdPractice", {})
@@ -108,7 +111,6 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
             "circuit_locality": location.get("locality"),
             "circuit_country": location.get("country"),
 
-            # Tider som ISO8601
             "race_start": self.combine_date_time(race.get("date"), race.get("time")),
             "first_practice_start": self.combine_date_time(first_practice.get("date"), first_practice.get("time")),
             "second_practice_start": self.combine_date_time(second_practice.get("date"), second_practice.get("time")),
@@ -121,20 +123,19 @@ class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
 
 class F1CurrentSeasonSensor(CoordinatorEntity, SensorEntity):
     """
-    En sensor som visar info om hela säsongens race.
-    State = antal race i säsongen
-    Attribut = en lista med all data (Races), plus ev. annan metadata.
+    Sensor som visar info om hela säsongen.
+    - state = antal race
+    - attribut = säsong, race-lista osv
     """
 
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
         self._attr_name = sensor_name
         self._attr_unique_id = f"{sensor_name}_unique"
-        self._attr_icon = "mdi:calendar-month"  # Ikon för säsong-sensorn
+        self._attr_icon = "mdi:calendar-month"
 
     @property
     def state(self):
-        """Returnera antal race i säsongen."""
         data = self.coordinator.data
         if not data:
             return None
@@ -144,7 +145,6 @@ class F1CurrentSeasonSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        """Returnera hela racelistan och ev. annan info som attribut."""
         data = self.coordinator.data
         if not data:
             return {}
@@ -155,5 +155,101 @@ class F1CurrentSeasonSensor(CoordinatorEntity, SensorEntity):
 
         return {
             "season": race_table.get("season"),
-            "races": races,  # Här är en lista med hela säsongens race
+            "races": races,
+        }
+
+
+class F1DriverStandingsSensor(CoordinatorEntity, SensorEntity):
+    """
+    Sensor för att exponera Driver Standings.
+    - state = antal förare
+    - attribut = driver_standings (lista), season, round
+    """
+
+    def __init__(self, coordinator, sensor_name):
+        super().__init__(coordinator)
+        self._attr_name = sensor_name
+        self._attr_unique_id = f"{sensor_name}_unique"
+        self._attr_icon = "mdi:account-multiple-check"
+
+    @property
+    def state(self):
+        data = self.coordinator.data
+        if not data:
+            return None
+
+        standings_lists = data.get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+        if not standings_lists:
+            return 0
+
+        driver_standings = standings_lists[0].get("DriverStandings", [])
+        return len(driver_standings)
+
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data
+        if not data:
+            return {}
+
+        standings_table = data.get("MRData", {}).get("StandingsTable", {})
+        standings_lists = standings_table.get("StandingsLists", [])
+
+        if not standings_lists:
+            return {}
+
+        first_list = standings_lists[0]
+        driver_standings = first_list.get("DriverStandings", [])
+
+        return {
+            "season": first_list.get("season"),
+            "round": first_list.get("round"),
+            "driver_standings": driver_standings,
+        }
+
+
+class F1ConstructorStandingsSensor(CoordinatorEntity, SensorEntity):
+    """
+    Ny sensor för att exponera Constructor Standings.
+    - state = antal constructors
+    - attribut = constructor_standings (lista), season, round
+    """
+
+    def __init__(self, coordinator, sensor_name):
+        super().__init__(coordinator)
+        self._attr_name = sensor_name
+        self._attr_unique_id = f"{sensor_name}_unique"
+        self._attr_icon = "mdi:factory"
+
+    @property
+    def state(self):
+        data = self.coordinator.data
+        if not data:
+            return None
+
+        standings_lists = data.get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+        if not standings_lists:
+            return 0
+
+        constructor_standings = standings_lists[0].get("ConstructorStandings", [])
+        return len(constructor_standings)
+
+    @property
+    def extra_state_attributes(self):
+        data = self.coordinator.data
+        if not data:
+            return {}
+
+        standings_table = data.get("MRData", {}).get("StandingsTable", {})
+        standings_lists = standings_table.get("StandingsLists", [])
+
+        if not standings_lists:
+            return {}
+
+        first_list = standings_lists[0]
+        constructor_standings = first_list.get("ConstructorStandings", [])
+
+        return {
+            "season": first_list.get("season"),
+            "round": first_list.get("round"),
+            "constructor_standings": constructor_standings,
         }

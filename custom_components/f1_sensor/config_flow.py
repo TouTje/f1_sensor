@@ -11,13 +11,11 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            # Skapa konfigurationsobjektet
             return self.async_create_entry(
-                title=user_input["sensor_name"],  # Titeln som visas i HA
-                data=user_input                   # Spara hela user_input i entry.data
+                title=user_input["sensor_name"],
+                data=user_input                 
             )
 
-        # Visa formulär för att ange sensor-namn
         data_schema = vol.Schema({
             vol.Required("sensor_name", default="F1"): cv.string
         })
