@@ -64,8 +64,6 @@ If the button above does not work, you can also perform the following steps manu
 5. Follow the on-screen instructions to complete the setup.
 
 
-<a href="https://buymeacoffee.com/niklasv" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
-
 
 ## ☕ Support the API that makes this possible
 
