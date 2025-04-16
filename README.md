@@ -313,7 +313,7 @@ data:
 >
 >This integration relies entirely on the amazing [Jolpica-F1 API](https://github.com/jolpica/jolpica-f1), which provides high-quality and up-to-date Formula 1 data for free.
 >
->If you find this integration useful, please consider supporting the creator of the API by donating to their Ko-fi page: [https://ko-fi.com/jolpic](https://ko-fi.com/jolpic)
+>If you find this integration useful, please consider supporting the creator of the API by donating to their Ko-fi page: https://ko-fi.com/jolpicaf1
 >
 >Without this API, this integration would not be possible, so any support helps keep it live and maintained. 🙏
 
