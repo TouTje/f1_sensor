@@ -228,7 +228,7 @@ Get info about the first race in the calendar:
 
 ```jinja
 {% set races = state_attr('sensor.f1_current_season', 'races') %}
-Next race: {{ races[0].raceName }} at {{ races[0].Circuit.circuitName }} in {{ races[0].Circuit.Location.locality }}
+First race: {{ races[0].raceName }} at {{ races[0].Circuit.circuitName }} in {{ races[0].Circuit.Location.locality }}
 ```
 ## Example
 
