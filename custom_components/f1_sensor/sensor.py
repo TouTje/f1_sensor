@@ -18,13 +18,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     constructor_coordinator = data["constructor_coordinator"]
 
     base = entry.data.get("sensor_name", "F1")
-    sensors = [
-        F1NextRaceSensor(race_coordinator, f"{base}_next_race"),
-        F1CurrentSeasonSensor(race_coordinator, f"{base}_current_season"),
-        F1DriverStandingsSensor(driver_coordinator, f"{base}_driver_standings"),
-        F1ConstructorStandingsSensor(constructor_coordinator, f"{base}_constructor_standings"),
-        F1WeatherSensor(race_coordinator, f"{base}_weather")
-    ]
+    # Read user's selection of sensors
+    enabled = entry.data.get("enabled_sensors", [])
+    # Map key to sensor class and coordinator
+    mapping = {
+        "next_race": (F1NextRaceSensor, data["race_coordinator"]),
+        "current_season": (F1CurrentSeasonSensor, data["race_coordinator"]),
+        "driver_standings": (F1DriverStandingsSensor, data["driver_coordinator"]),
+        "constructor_standings": (F1ConstructorStandingsSensor, data["constructor_coordinator"]),
+        "weather": (F1WeatherSensor, data["race_coordinator"]),
+    }
+    sensors = []
+    for key in enabled:
+        cls, coord = mapping.get(key, (None, None))
+        if cls and coord:
+            sensors.append(cls(coord, f"{base}_{key}"))
     async_add_entities(sensors, True)
 
 
