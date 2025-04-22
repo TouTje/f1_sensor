@@ -19,7 +19,15 @@ This integration **does not provide any UI components**. Instead, it creates:
 - `sensor.f1_constructor_standings` — Current constructor championship standings.
 - `sensor.f1_weather`: Current weather and race-time forecast at the next race location.
 
-The integration fetches fresh data from the Jolpica-F1 API every 6 hours.
+
+During installation, you can choose exactly which sensors you want to include in your setup.  
+This gives you control over which data points to load — for example, only the next race and weather, without standings or calendar.
+
+You can always change this selection later by reconfiguring the integration via **Settings > Devices & Services** in Home Assistant.
+
+
+The integration fetches fresh data from the Jolpica-F1 API every 1 hours.
+
 
 I personally use this integration to display the next race and the following three races on an e-ink display. You can read more about that setup [here](https://github.com/Nicxe/esphome).
 
