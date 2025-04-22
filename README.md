@@ -1,15 +1,14 @@
 # F1 Sensor for Home Assistant
 ![GitHub release (latest)](https://img.shields.io/github/v/release/Nicxe/f1_sensor)
 ![HACS Custom](https://img.shields.io/badge/HACS-Custom-blue)
-<img alt="Maintenance" src="https://img.shields.io/maintenance/yes/2025">
-<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/Nicxe/esphome"><br><br>
 
 ## What is F1 Sensor?
+
 This is a custom integration for Home Assistant that creates sensors using data from the [Jolpica-F1 API](https://github.com/jolpica/jolpica-f1). It is designed for users who want to build automations, scripts, notifications, TTS messages, or more advanced use cases such as generating dynamic dashboards, triggering race-day routines, syncing events to calendars, or integrating with external services based on upcoming Formula 1 events.
 
 
 > [!TIP]
-> If your goal is to visually display upcoming race information, current standings, > and more in your Home Assistant dashboard, the [FormulaOne Card](https://github.com/marcokreeft87/formulaone-card) by @marcokreeft87 is the better choice for that purpose.
+> If your goal is to visually display upcoming race information, current standings, > and more in your Home Assistant dashboard, the [FormulaOne Card](https://github.com/marcokreeft87/formulaone-card) is the better choice for that purpose.
 
 
 
@@ -18,6 +17,7 @@ This integration **does not provide any UI components**. Instead, it creates:
 - `sensor.f1_season_calendar` — A list of all races in the current F1 season.
 - `sensor.f1_driver_standings` — Current driver championship standings.
 - `sensor.f1_constructor_standings` — Current constructor championship standings.
+- `sensor.f1_weather`: Current weather and race-time forecast at the next race location.
 
 The integration fetches fresh data from the Jolpica-F1 API every 6 hours.
 
@@ -83,14 +83,14 @@ This integration provides the following sensors:
 - `sensor.f1_season_calendar`: The full season calendar.
 - `sensor.f1_driver_standings`: Current driver championship standings.
 - `sensor.f1_constructor_standings`: Current constructor championship standings.
-- 
-## Sensor Attributes Reference
+- `sensor.f1_weather`: Current weather and race-time forecast at the next race location.
+
+### Sensor Attributes Reference
 
 This integration provides several sensors with rich attribute data. Below is a reference guide for what attributes are available in each sensor, including examples of how to access them in templates.
 
----
-
-### `sensor.f1_next_race`
+<details>
+<summary>sensor.f1_next_race</summary>
 
 | Attribute               | Description                           | Example                                |
 |------------------------|---------------------------------------|----------------------------------------|
@@ -112,10 +112,11 @@ This integration provides several sensors with rich attribute data. Below is a r
 | `qualifying_start`     | Qualifying session start              | `2025-04-19T17:00:00+00:00`            |
 | `sprint_qualifying_start` | Sprint qualifying start (nullable) | `null`                                 |
 | `sprint_start`         | Sprint session start (nullable)       | `null`                                 |
+</details>
 
----
-
-### `sensor.f1_driver_standings`
+<details>
+<summary>sensor.f1_driver_standings</summary>
+<br>
 
 | Attribute           | Description                                    |
 |--------------------|------------------------------------------------|
@@ -142,10 +143,11 @@ Each item in `driver_standings` contains:
 ```jinja
 {{ state_attr('sensor.f1_driver_standings', 'driver_standings')[0].Driver.familyName }}
 ```
-
----
-
-### `sensor.f1_constructor_standings`
+    
+</details>
+    
+<details>
+<summary>sensor.f1_constructor_standings</summary>
 
 This sensor provides the current constructor standings for the season.
 
@@ -178,10 +180,11 @@ Each constructor entry contains:
 {% set constructors = state_attr('sensor.f1_constructor_standings', 'constructor_standings') %}
 Top team is {{ constructors[0].Constructor.name }} with {{ constructors[0].points }} points.
 ```
+</details>
 
-
-### `sensor.f1_current_season`
-
+<details>
+<summary>sensor.f1_current_season</summary>
+    
 This sensor contains the full race calendar for the current Formula 1 season.
 
 #### Top-level attributes
@@ -228,8 +231,25 @@ Get info about the first race in the calendar:
 
 ```jinja
 {% set races = state_attr('sensor.f1_current_season', 'races') %}
-First race: {{ races[0].raceName }} at {{ races[0].Circuit.circuitName }} in {{ races[0].Circuit.Location.locality }}
+Next race: {{ races[0].raceName }} at {{ races[0].Circuit.circuitName }} in {{ races[0].Circuit.Location.locality }}
 ```
+</details>
+
+<details>
+<summary>sensor.f1_weather</summary>
+
+The `sensor.f1_weather` sensor provides weather data for the location of the next Formula 1 race, powered by [MET Norway](https://www.met.no).
+
+It includes:
+- **Current weather** at the circuit (`current_` attributes).
+- **Forecasted weather** for the scheduled race start time (`race_` attributes).
+
+> [!NOTE]
+> Weather forecasts are available up to 9 days in advance. The closer we get to race day, the more frequent and precise the forecast becomes (up to hourly resolution). If the race is more than 9 days away, the `race_` attributes will have a value of `null`.
+</details>
+
+
+
 ## Example
 
 ### Example Screenshots
@@ -313,7 +333,7 @@ data:
 >
 >This integration relies entirely on the amazing [Jolpica-F1 API](https://github.com/jolpica/jolpica-f1), which provides high-quality and up-to-date Formula 1 data for free.
 >
->If you find this integration useful, please consider supporting the creator of the API by donating to their Ko-fi page: https://ko-fi.com/jolpicaf1
+>If you find this integration useful, please consider supporting the creator of the API by donating to their Ko-fi page: [https://ko-fi.com/jolpic](https://ko-fi.com/jolpic)
 >
 >Without this API, this integration would not be possible, so any support helps keep it live and maintained. 🙏
 

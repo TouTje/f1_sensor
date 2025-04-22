@@ -73,7 +73,7 @@ class F1DataCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=name,
-            update_interval=timedelta(hours=6)
+            update_interval=timedelta(hours=1)
         )
         self._session = aiohttp.ClientSession()
         self._url = url
