@@ -35,55 +35,94 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
 
 class F1NextRaceSensor(CoordinatorEntity, SensorEntity):
-    """Sensor showing the next race's start time."""
+    """Sensor that returns date/time (ISO8601) for the next race in 'state'."""
+
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
         self._attr_name = sensor_name
         self._attr_unique_id = f"{sensor_name}_unique"
-        self._attr_icon = "mdi:flag-checkered"
+        self._attr_icon = "mdi:flag-checkered"  # optional icon
         self._attr_device_class = SensorDeviceClass.TIMESTAMP
 
     def _get_next_race(self):
-        data = self.coordinator.data or {}
+        data = self.coordinator.data
+        if not data:
+            return None
+
         races = data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
         now = datetime.datetime.now(datetime.timezone.utc)
+
         for race in races:
-            dt = self.combine_date_time(race.get("date"), race.get("time"))
-            if dt and datetime.datetime.fromisoformat(dt) > now:
+            race_date_str = race.get("date")
+            race_time_str = race.get("time") or "00:00:00Z"
+            dt_str = f"{race_date_str}T{race_time_str}".replace("Z", "+00:00")
+            try:
+                race_dt = datetime.datetime.fromisoformat(dt_str)
+            except ValueError:
+                continue
+
+            if race_dt > now:
                 return race
+
         return None
 
     def combine_date_time(self, date_str, time_str):
         if not date_str:
             return None
-        dt_str = f"{date_str}T{(time_str or '00:00:00Z')}".replace("Z", "+00:00")
+        if not time_str:
+            time_str = "00:00:00Z"
+        dt_str = f"{date_str}T{time_str}".replace("Z", "+00:00")
         try:
-            return datetime.datetime.fromisoformat(dt_str).isoformat()
+            dt = datetime.datetime.fromisoformat(dt_str)
+            return dt.isoformat()
         except ValueError:
             return None
 
     @property
     def state(self):
-        race = self._get_next_race()
-        return self.combine_date_time(race.get("date"), race.get("time")) if race else None
+        """Show the start time for the next race (ISO8601) in state."""
+        next_race = self._get_next_race()
+        if not next_race:
+            return None
+        return self.combine_date_time(next_race.get("date"), next_race.get("time"))
 
     @property
     def extra_state_attributes(self):
         race = self._get_next_race()
         if not race:
             return {}
-        loc = race.get("Circuit", {}).get("Location", {})
+
+        circuit = race.get("Circuit", {})
+        location = circuit.get("Location", {})
+
+        first_practice = race.get("FirstPractice", {})
+        second_practice = race.get("SecondPractice", {})
+        third_practice = race.get("ThirdPractice", {})
+        qualifying = race.get("Qualifying", {})
+        sprint_qualifying = race.get("SprintQualifying", {})
+        sprint = race.get("Sprint", {})
+
         return {
             "season": race.get("season"),
             "round": race.get("round"),
             "race_name": race.get("raceName"),
             "race_url": race.get("url"),
-            "circuit_id": race.get("Circuit", {}).get("circuitId"),
-            "circuit_name": race.get("Circuit", {}).get("circuitName"),
-            "circuit_lat": loc.get("lat"),
-            "circuit_long": loc.get("long"),
-            "circuit_locality": loc.get("locality"),
-            "circuit_country": loc.get("country"),
+
+            "circuit_id": circuit.get("circuitId"),
+            "circuit_name": circuit.get("circuitName"),
+            "circuit_url": circuit.get("url"),
+            "circuit_lat": location.get("lat"),
+            "circuit_long": location.get("long"),
+            "circuit_locality": location.get("locality"),
+            "circuit_country": location.get("country"),
+
+            "race_start": self.combine_date_time(race.get("date"), race.get("time")),
+            "first_practice_start": self.combine_date_time(first_practice.get("date"), first_practice.get("time")),
+            "second_practice_start": self.combine_date_time(second_practice.get("date"), second_practice.get("time")),
+            "third_practice_start": self.combine_date_time(third_practice.get("date"), third_practice.get("time")),
+            "qualifying_start": self.combine_date_time(qualifying.get("date"), qualifying.get("time")),
+            "sprint_qualifying_start": self.combine_date_time(sprint_qualifying.get("date"), sprint_qualifying.get("time")),
+            "sprint_start": self.combine_date_time(sprint.get("date"), sprint.get("time")),
         }
 
 
