@@ -96,7 +96,7 @@ If the button above does not work, you can also perform the following steps manu
 
 ## Example
 
-### Example Screenshots
+### E-ink display
 
 This [e-ink display project](https://github.com/Nicxe/esphome) uses the sensors from this integration to show upcoming Formula 1 races, including race countdown and schedule.
 
@@ -104,7 +104,21 @@ This [e-ink display project](https://github.com/Nicxe/esphome) uses the sensors 
 
 ---
 
-### Example: Announce next race and top standings via TTS
+### Custom F1 Card by the Community
+
+Community user Tiidler has used the sensors from this integration to create a fully custom F1 dashboard card in Home Assistant, displaying race schedule, standings, podium results, and weather, all styled to fit their setup.
+
+![image (1)](https://github.com/user-attachments/assets/4ed2748c-2ae7-4529-8767-bedbaa98636f)
+
+
+
+
+
+---
+
+
+
+### Announce next race and top standings via TTS
 
 ```yaml
 service: tts.google_translate_say
@@ -131,7 +145,7 @@ data:
 
 ---
 
-### Example: Mobile notification with race info and standings
+### Mobile notification with race info and standings
 
 ```yaml
 service: notify.mobile_app_yourdevice
