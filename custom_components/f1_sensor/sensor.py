@@ -242,10 +242,14 @@ class F1WeatherSensor(CoordinatorEntity, SensorEntity):
         if start_iso:
             start_dt = datetime.datetime.fromisoformat(start_iso)
             same_day = [t for t in times if datetime.datetime.fromisoformat(t["time"]).date() == start_dt.date()]
-            if same_day:
-                closest = min(same_day, key=lambda t: abs(datetime.datetime.fromisoformat(t["time"]) - start_dt))
-                rd = closest.get("data", {}).get("instant", {}).get("details", {})
-                self._race = self._extract(rd)
+        if same_day:
+            closest = min(same_day, key=lambda t: abs(datetime.datetime.fromisoformat(t["time"]) - start_dt))
+            data_entry = closest.get("data", {})
+            instant_details = data_entry.get("instant", {}).get("details", {})
+            precip_1h = data_entry.get("next_1_hours", {}).get("details", {}).get("precipitation_amount", 0)
+            rd = dict(instant_details)
+            rd["precipitation_amount"] = precip_1h
+            self._race = self._extract(rd)
         self.async_write_ha_state()
 
     def _extract(self, d):
