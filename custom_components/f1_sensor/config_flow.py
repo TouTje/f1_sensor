@@ -30,6 +30,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     "weather",
                     "last_race_results",
                     "season_results",
+                    "last_qualifying",  # --- Lägg till som val ---
                 ]
             ): cv.multi_select({
                 "next_race": "Next race",
@@ -39,6 +40,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 "weather": "Weather",
                 "last_race_results": "Last race results",
                 "season_results": "Season results",
+                "last_qualifying": "Last qualifying results",  # --- Visningsnamn ---
             }),
         })
 
@@ -49,14 +51,15 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_reconfigure(self, user_input=None):
-        """Allow reconfiguration of the integration."""
         errors = {}
+
         if user_input is not None:
             entry = self._get_reconfigure_entry()
             return self.async_update_reload_and_abort(
                 entry,
                 data_updates=user_input,
             )
+
         entry = self._get_reconfigure_entry()
         current = entry.data
         data_schema = vol.Schema({
@@ -71,6 +74,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     "weather",
                     "last_race_results",
                     "season_results",
+                    "last_qualifying",  # --- Behåll om redan valt ---
                 ])
             ): cv.multi_select({
                 "next_race": "Next race",
@@ -80,8 +84,10 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 "weather": "Weather",
                 "last_race_results": "Last race results",
                 "season_results": "Season results",
+                "last_qualifying": "Last qualifying results",
             }),
         })
+
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=data_schema,

@@ -1,3 +1,5 @@
+# custom_components/f1_sensor/__init__.py
+
 import logging
 from datetime import timedelta
 import aiohttp
@@ -15,42 +17,41 @@ from .const import (
     CONSTRUCTOR_STANDINGS_URL,
     LAST_RACE_RESULTS_URL,
     SEASON_RESULTS_URL,
+    LAST_QUALIFYING_URL,  # --- Importera nya URL:en ---
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up integration via config flow."""
-    # Befintliga coordinators
     race_coordinator = F1DataCoordinator(hass, API_URL, "F1 Race Data Coordinator")
     driver_coordinator = F1DataCoordinator(hass, DRIVER_STANDINGS_URL, "F1 Driver Standings Coordinator")
     constructor_coordinator = F1DataCoordinator(hass, CONSTRUCTOR_STANDINGS_URL, "F1 Constructor Standings Coordinator")
-    # Nya coordinators för resultat
     last_race_coordinator = F1DataCoordinator(hass, LAST_RACE_RESULTS_URL, "F1 Last Race Results Coordinator")
     season_results_coordinator = F1DataCoordinator(hass, SEASON_RESULTS_URL, "F1 Season Results Coordinator")
+    qualifying_coordinator = F1DataCoordinator(hass, LAST_QUALIFYING_URL, "F1 Last Qualifying Coordinator")  # --- Ny coordinator ---
 
-    # Första inläsning
+    # Gemensam första inläsning
     await race_coordinator.async_config_entry_first_refresh()
     await driver_coordinator.async_config_entry_first_refresh()
     await constructor_coordinator.async_config_entry_first_refresh()
     await last_race_coordinator.async_config_entry_first_refresh()
     await season_results_coordinator.async_config_entry_first_refresh()
+    await qualifying_coordinator.async_config_entry_first_refresh()  # --- Läs in kval-data ---
 
-    # Spara coordinators i hass.data
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "race_coordinator": race_coordinator,
         "driver_coordinator": driver_coordinator,
         "constructor_coordinator": constructor_coordinator,
         "last_race_coordinator": last_race_coordinator,
         "season_results_coordinator": season_results_coordinator,
+        "last_qualifying_coordinator": qualifying_coordinator,  # --- Spara coordinator ---
     }
 
-    # Ladda sensorplattform
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Clean up when integration is removed."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
