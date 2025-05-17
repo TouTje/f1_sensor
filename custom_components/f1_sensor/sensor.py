@@ -9,7 +9,7 @@ import datetime
 
 from .const import DOMAIN
 
-# Yr symbol_code to MDI-ikoner
+
 SYMBOL_CODE_TO_MDI = {
     "clearsky_day": "mdi:weather-sunny",
     "clearsky_night": "mdi:weather-night",
@@ -67,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         "weather": (F1WeatherSensor, data["race_coordinator"]),
         "last_race_results": (F1LastRaceSensor, data["last_race_coordinator"]),
         "season_results": (F1SeasonResultsSensor, data["season_results_coordinator"]),
+        # "last_qualifying": (F1LastQualifyingSensor, data["last_qualifying_coordinator"]),
     }
 
     sensors = []
@@ -301,11 +302,13 @@ class F1WeatherSensor(CoordinatorEntity, SensorEntity):
                 rd = dict(instant_details)
                 rd["precipitation_amount"] = precip_1h
                 self._race = self._extract(rd)
-                race_symbol = data_entry \
-                    .get("next_1_hours", {}) \
-                    .get("summary", {}) \
-                    .get("symbol_code")
-                race_icon = SYMBOL_CODE_TO_MDI.get(race_symbol)
+                forecast_block = (
+                    data_entry.get("next_1_hours")
+                    or data_entry.get("next_6_hours")
+                    or data_entry.get("next_12_hours", {})
+                )
+                race_symbol = forecast_block.get("summary", {}).get("symbol_code")
+                race_icon = SYMBOL_CODE_TO_MDI.get(race_symbol, self._attr_icon)
                 self._race["weather_icon"] = race_icon
         self.async_write_ha_state()
 
