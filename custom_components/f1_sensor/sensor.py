@@ -1,4 +1,5 @@
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
+from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -449,15 +450,15 @@ class F1SeasonResultsSensor(CoordinatorEntity, SensorEntity):
         return {"races": cleaned}
 
 
-# --- F1RaceWeekSensor ---
-class F1RaceWeekSensor(CoordinatorEntity, SensorEntity):
-    """Sensor that returns True if it's race week, else False. Extra attribute: days until next race."""
+class F1RaceWeekSensor(CoordinatorEntity, BinarySensorEntity):
+    """Binary sensor that returns True if it's race week, else False. Extra attribute: days until next race."""
 
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
         self._attr_name = sensor_name
         self._attr_unique_id = f"{sensor_name}_unique"
         self._attr_icon = "mdi:calendar-range"
+        self._attr_device_class = BinarySensorDeviceClass.OCCUPANCY
 
     def _get_next_race(self):
         data = self.coordinator.data
@@ -480,7 +481,7 @@ class F1RaceWeekSensor(CoordinatorEntity, SensorEntity):
         return None, None
 
     @property
-    def state(self):
+    def is_on(self):
         next_race_dt, _ = self._get_next_race()
         if not next_race_dt:
             return False
@@ -488,6 +489,11 @@ class F1RaceWeekSensor(CoordinatorEntity, SensorEntity):
         start_of_week = now - datetime.timedelta(days=now.weekday())
         end_of_week = start_of_week + datetime.timedelta(days=6, hours=23, minutes=59, seconds=59)
         return start_of_week.date() <= next_race_dt.date() <= end_of_week.date()
+
+    @property
+    def state(self):
+        # For compatibility, state returns True/False (not "on"/"off")
+        return self.is_on
 
     @property
     def extra_state_attributes(self):
