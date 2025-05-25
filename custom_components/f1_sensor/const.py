@@ -1,4 +1,4 @@
-DOMAIN = "f1_sensor"
+DOMAIN = "f1_sensor_test"
 PLATFORMS = ["sensor"]
 
 API_URL = "https://api.jolpi.ca/ergast/f1/current.json"
