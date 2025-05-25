@@ -1,5 +1,5 @@
 {
-    "domain": "f1_sensor test",
+    "domain": "f1_sensor_test",
     "name": "F1 Sensor_test",
     "codeowners": ["@TouTje"],
     "config_flow": true,
