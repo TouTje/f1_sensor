@@ -69,13 +69,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         past_race = race
 
     weekday = now.weekday()  # 0 = maandag, ..., 6 = zondag
+    _LOGGER.debug("Huidige weekday (UTC): %s", weekday)
 
     if weekday >= 3:
-        # Vanaf donderdag: gebruik komende race
-        target_round = int(race.get("round", "0"))
-    else:
-        # Tot woensdag: gebruik laatst bekende afgeronde race
+        # Vanaf donderdag: gebruik huidige race (deze week)
         target_round = int(past_race.get("round", "0")) if past_race else 1
+    else:
+        # Tot woensdag: gebruik vorige race
+        target_round = int(past_race.get("round", "0")) - 1 if past_race else 1
 
     qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
     _LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
