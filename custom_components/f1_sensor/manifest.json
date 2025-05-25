@@ -1,6 +1,6 @@
 {
     "domain": "f1_sensor test",
-    "name": "F1 Sensor test",
+    "name": "F1 Sensor_test",
     "codeowners": ["@TouTje"],
     "config_flow": true,
     "documentation": "https://github.com/TouTje/f1_sensor",
