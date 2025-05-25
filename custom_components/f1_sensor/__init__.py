@@ -1,10 +1,11 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timezone, timedelta
 import aiohttp
 import async_timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import (
@@ -14,11 +15,27 @@ from .const import (
     DRIVER_STANDINGS_URL,
     CONSTRUCTOR_STANDINGS_URL,
     LAST_RACE_RESULTS_URL,
-    LAST_QUALIFYING_RESULTS_URL,
     SEASON_RESULTS_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+class F1DataCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, url, name):
+        self.url = url
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=name,
+            update_interval=timedelta(hours=1),
+        )
+
+    async def _async_update_data(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(self.url) as resp:
+                if resp.status != 200:
+                    raise UpdateFailed(f"API error {resp.status}")
+                return await resp.json()
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up integration via config flow."""
@@ -26,16 +43,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     driver_coordinator = F1DataCoordinator(hass, DRIVER_STANDINGS_URL, "F1 Driver Standings Coordinator")
     constructor_coordinator = F1DataCoordinator(hass, CONSTRUCTOR_STANDINGS_URL, "F1 Constructor Standings Coordinator")
     last_race_coordinator = F1DataCoordinator(hass, LAST_RACE_RESULTS_URL, "F1 Last Race Results Coordinator")
-    last_qualifying_coordinator = F1DataCoordinator(hass, LAST_QUALIFYING_RESULTS_URL, "F1 Last Qualifying Results Coordinator")
     season_results_coordinator = F1DataCoordinator(hass, SEASON_RESULTS_URL, "F1 Season Results Coordinator")
 
     await race_coordinator.async_config_entry_first_refresh()
     await driver_coordinator.async_config_entry_first_refresh()
     await constructor_coordinator.async_config_entry_first_refresh()
     await last_race_coordinator.async_config_entry_first_refresh()
-    await last_qualifying_coordinator.async_config_entry_first_refresh()
     await season_results_coordinator.async_config_entry_first_refresh()
 
+    # ─── Dynamisch URL bepalen voor kwalificatie ──────────────────────────────
+    races = race_coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+    now = datetime.now(timezone.utc)
+
+    next_race = None
+    for race in races:
+        date = race.get("date")
+        time = race.get("time", "00:00:00Z")
+        dt_str = f"{date}T{time}".replace("Z", "+00:00")
+        try:
+            race_dt = datetime.fromisoformat(dt_str)
+        except ValueError:
+            continue
+        if race_dt > now:
+            next_race = race
+            break
+
+    if next_race:
+        try:
+            round_number = int(next_race.get("round", "0"))
+            weekday = now.weekday()  # 0 = maandag, ..., 6 = zondag
+            target_round = round_number if weekday >= 3 else round_number - 1
+            qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
+        except Exception as e:
+            _LOGGER.warning("Kon ronde niet bepalen: %s", e)
+            qualifying_url = "https://api.jolpi.ca/ergast/f1/current/last/qualifying.json"
+    else:
+        qualifying_url = "https://api.jolpi.ca/ergast/f1/current/last/qualifying.json"
+
+    last_qualifying_coordinator = F1DataCoordinator(
+        hass, qualifying_url, "F1 Last Qualifying Results Coordinator"
+    )
+    await last_qualifying_coordinator.async_config_entry_first_refresh()
+
+    # ─── Registreren van coordinators ─────────────────────────────────────────
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "race_coordinator": race_coordinator,
         "driver_coordinator": driver_coordinator,
