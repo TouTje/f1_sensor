@@ -405,7 +405,7 @@ class F1LastRaceSensor(CoordinatorEntity, SensorEntity):
 
 
 class F1LastQualifyingSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for results of the latest race."""
+    """Sensor for results of the latest F1 qualifying."""
 
     def __init__(self, coordinator, sensor_name):
         super().__init__(coordinator)
@@ -415,19 +415,25 @@ class F1LastQualifyingSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def state(self):
+        """Return the winner's family name from qualifying."""
         races = self.coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
         if not races:
             return None
-        QualifyingResults = races[0].get("QualifyingResults", [])
-        winner = next((r for r in QualifyingResults if r.get("positionText") == "1"), None)
+        race = races[0]
+        results = race.get("QualifyingResults", [])
+
+        # Zoek degene met positie "1"
+        winner = next((r for r in results if r.get("position") == "1"), None)
         return winner.get("Driver", {}).get("familyName") if winner else None
 
     @property
     def extra_state_attributes(self):
+        """Return detailed qualifying results."""
         races = self.coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
         if not races:
             return {}
         race = races[0]
+        results_raw = race.get("QualifyingResults", [])
 
         def _clean_result(r):
             return {
@@ -448,11 +454,11 @@ class F1LastQualifyingSensor(CoordinatorEntity, SensorEntity):
                 }
             }
 
-        QualifyingResults = [_clean_result(r) for r in race.get("QualifyingResults", [])]
+        QualifyingResults = [_clean_result(r) for r in results_raw]
         return {
             "round": race.get("round"),
             "race_name": race.get("raceName"),
-            "results": QualifyingResults
+            "results": QualifyingResults,
         }
 
 
@@ -562,4 +568,3 @@ class F1RaceWeekSensor(CoordinatorEntity, BinarySensorEntity):
             "days_until_next_race": days,
             "next_race_name": race_name
         }
-
