@@ -25,12 +25,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     driver_coordinator = F1DataCoordinator(hass, DRIVER_STANDINGS_URL, "F1 Driver Standings Coordinator")
     constructor_coordinator = F1DataCoordinator(hass, CONSTRUCTOR_STANDINGS_URL, "F1 Constructor Standings Coordinator")
     last_race_coordinator = F1DataCoordinator(hass, LAST_RACE_RESULTS_URL, "F1 Last Race Results Coordinator")
+    last_qualifying_coordinator = F1DataCoordinator(hass, LAST_QUALIFYING_RESULTS_URL, "F1 Last Qualifying Results Coordinator")
     season_results_coordinator = F1DataCoordinator(hass, SEASON_RESULTS_URL, "F1 Season Results Coordinator")
 
     await race_coordinator.async_config_entry_first_refresh()
     await driver_coordinator.async_config_entry_first_refresh()
     await constructor_coordinator.async_config_entry_first_refresh()
     await last_race_coordinator.async_config_entry_first_refresh()
+    await last_qualifying_coordinator.async_config_entry_first_refresh()
     await season_results_coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
@@ -38,6 +40,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "driver_coordinator": driver_coordinator,
         "constructor_coordinator": constructor_coordinator,
         "last_race_coordinator": last_race_coordinator,
+        "last_qualifying_coordinator": last_qualifying_coordinator,
         "season_results_coordinator": season_results_coordinator,
     }
 

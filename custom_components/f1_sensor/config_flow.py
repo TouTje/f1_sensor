@@ -27,6 +27,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     "constructor_standings",
                     "weather",
                     "last_race_results",
+                    "last_qualifying_results",
                     "season_results",
                     "race_week",
                 ]
@@ -37,6 +38,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 "constructor_standings": "Constructor standings",
                 "weather": "Weather",
                 "last_race_results": "Last race results",
+                "last_qualifying_results": "Last qualifying results",
                 "season_results": "Season results",
                 "race_week": "Race week",
             }),
@@ -71,6 +73,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                     "constructor_standings",
                     "weather",
                     "last_race_results",
+                    "last_qualifying_results",
                     "season_results",
                     "race_week",
                 ])
@@ -81,6 +84,7 @@ class F1FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 "constructor_standings": "Constructor standings",
                 "weather": "Weather",
                 "last_race_results": "Last race results",
+                "last_qualifying_results": "Last qualifying results",
                 "season_results": "Season results",
                 "race_week": "Race week",
             }),

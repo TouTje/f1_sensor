@@ -67,6 +67,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         "constructor_standings": (F1ConstructorStandingsSensor, data["constructor_coordinator"]),
         "weather": (F1WeatherSensor, data["race_coordinator"]),
         "last_race_results": (F1LastRaceSensor, data["last_race_coordinator"]),
+        "last_qualifying_results": (F1LastRaceSensor, data["last_qualifying_coordinator"]),
         "season_results": (F1SeasonResultsSensor, data["season_results_coordinator"]),
         # "last_qualifying": (F1LastQualifyingSensor, data["last_qualifying_coordinator"]),
         "race_week": (F1RaceWeekSensor, data["race_coordinator"]),
@@ -400,6 +401,58 @@ class F1LastRaceSensor(CoordinatorEntity, SensorEntity):
             "round": race.get("round"),
             "race_name": race.get("raceName"),
             "results": results
+        }
+
+
+class F1LastQualifyingSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for results of the latest race."""
+
+    def __init__(self, coordinator, sensor_name):
+        super().__init__(coordinator)
+        self._attr_name = sensor_name
+        self._attr_unique_id = f"{sensor_name}_unique"
+        self._attr_icon = "mdi:trophy"
+
+    @property
+    def state(self):
+        races = self.coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+        if not races:
+            return None
+        QualifyingResults = races[0].get("QualifyingResults", [])
+        winner = next((r for r in QualifyingResults if r.get("positionText") == "1"), None)
+        return winner.get("Driver", {}).get("familyName") if winner else None
+
+    @property
+    def extra_state_attributes(self):
+        races = self.coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+        if not races:
+            return {}
+        race = races[0]
+
+        def _clean_result(r):
+            return {
+                "number": r.get("number"),
+                "position": r.get("position"),
+                "Q1": r.get("Q1"),
+                "Q2": r.get("Q2"),
+                "Q3": r.get("Q3"),
+                "driver": {
+                    "permanentNumber": r.get("Driver", {}).get("permanentNumber"),
+                    "code": r.get("Driver", {}).get("code"),
+                    "givenName": r.get("Driver", {}).get("givenName"),
+                    "familyName": r.get("Driver", {}).get("familyName"),
+                },
+                "constructor": {
+                    "constructorId": r.get("Constructor", {}).get("constructorId"),
+                    "name": r.get("Constructor", {}).get("name"),
+                }
+            }
+
+        QualifyingResults = [_clean_result(r) for r in race.get("QualifyingResults", [])]
+        return {
+            "round": race.get("round"),
+            "race_name": race.get("raceName"),
+            "results": QualifyingResults
         }
 
 
