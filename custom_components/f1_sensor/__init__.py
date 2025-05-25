@@ -80,6 +80,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         qualifying_url = "https://api.jolpi.ca/ergast/f1/current/last/qualifying.json"
 
+    _LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
+
     last_qualifying_coordinator = F1DataCoordinator(
         hass, qualifying_url, "F1 Last Qualifying Results Coordinator"
     )
