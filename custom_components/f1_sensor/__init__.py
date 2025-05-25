@@ -55,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     races = race_coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
     now = datetime.now(timezone.utc)
 
-    next_race = None
+    past_race = None
     for race in races:
         date = race.get("date")
         time = race.get("time", "00:00:00Z")
@@ -65,21 +65,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except ValueError:
             continue
         if race_dt > now:
-            next_race = race
             break
+        past_race = race
 
-    if next_race:
-        try:
-            round_number = int(next_race.get("round", "0"))
-            weekday = now.weekday()  # 0 = maandag, ..., 6 = zondag
-            target_round = round_number if weekday >= 3 else round_number - 1
-            qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
-        except Exception as e:
-            _LOGGER.warning("Kon ronde niet bepalen: %s", e)
-            qualifying_url = "https://api.jolpi.ca/ergast/f1/current/last/qualifying.json"
+    weekday = now.weekday()  # 0 = maandag, ..., 6 = zondag
+
+    if weekday >= 3:
+        # Vanaf donderdag: gebruik komende race
+        target_round = int(race.get("round", "0"))
     else:
-        qualifying_url = "https://api.jolpi.ca/ergast/f1/current/last/qualifying.json"
+        # Tot woensdag: gebruik laatst bekende afgeronde race
+        target_round = int(past_race.get("round", "0")) if past_race else 1
 
+    qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
     _LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
 
     last_qualifying_coordinator = F1DataCoordinator(
