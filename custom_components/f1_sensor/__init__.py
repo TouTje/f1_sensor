@@ -52,42 +52,63 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await season_results_coordinator.async_config_entry_first_refresh()
 
 # ─── Dynamisch URL bepalen voor kwalificatie ──────────────────────────────
+BASE_URL = "https://api.jolpi.ca/ergast/f1/current/{round}/qualifying.json"
+
+# ─── Hulpfunctie: Zoek laatste geldige qualifying ronde ───────────────────────
+async def find_latest_valid_qualifying_round_upwards(start_round: int, max_round: int = 24):
+    latest_valid_round = None
+
+    async with aiohttp.ClientSession() as session:
+        for round_num in range(start_round, max_round + 1):
+            url = BASE_URL.format(round=round_num)
+            try:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        break  # Stop bij eerste fout
+
+                    data = await resp.json()
+                    races = data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+                    if races:
+                        _LOGGER.debug("Geldige qualifying data gevonden voor round %s", round_num)
+                        latest_valid_round = round_num
+                    else:
+                        break
+            except Exception as e:
+                _LOGGER.warning("Fout bij ophalen qualifying data voor round %s: %s", round_num, e)
+                break
+
+    return latest_valid_round
+
+
+# ─── Hoofdlogica voor bepalen qualifying URL ───────────────────────────────────
+# Stap 1: Haal racekalender op
 races = race_coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
-now = datetime.now(timezone.utc).date()
+now = datetime.now(timezone.utc)
 
-target_round = None
-
+# Stap 2: Bepaal eerstvolgende race
+next_race = None
 for race in races:
-    date_str = race.get("date")
+    date = race.get("date")
+    time = race.get("time", "00:00:00Z")
+    dt_str = f"{date}T{time}".replace("Z", "+00:00")
     try:
-        race_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except (ValueError, TypeError):
+        race_dt = datetime.fromisoformat(dt_str)
+    except ValueError:
         continue
 
-    # Bepaal de donderdag van de raceweek
-    race_week_thursday = race_date - timedelta(days=(race_date.weekday() - 3) % 7)
-
-    if race_week_thursday <= now <= race_date:
-        # We zitten in de raceweek (tussen donderdag en racedag)
-        target_round = int(race.get("round", "0"))
+    if race_dt > now:
+        next_race = race
         break
 
-# Als er geen raceweek is, pak dan eerstvolgende race
-if not target_round:
-    for race in races:
-        try:
-            race_date = datetime.strptime(race.get("date"), "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            continue
-        if race_date > now:
-            target_round = int(race.get("round", "0"))
-            break
+# Stap 3: Bepaal start_round en zoek laatste geldige kwalificatie
+start_round = int(next_race.get("round", "2")) - 1 if next_race else 1
+target_round = await find_latest_valid_qualifying_round_upwards(start_round)
 
-# Fallback
 if not target_round:
-    target_round = 1
+    target_round = 1  # fallback
 
-qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
+# Stap 4: Bouw URL en initialiseert coordinator
+qualifying_url = BASE_URL.format(round=target_round)
 _LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
 
 last_qualifying_coordinator = F1DataCoordinator(
