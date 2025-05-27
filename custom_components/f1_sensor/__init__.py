@@ -51,40 +51,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await last_race_coordinator.async_config_entry_first_refresh()
     await season_results_coordinator.async_config_entry_first_refresh()
 
-    # ─── Dynamisch URL bepalen voor kwalificatie ──────────────────────────────
-    races = race_coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
-    now = datetime.now(timezone.utc)
+# ─── Dynamisch URL bepalen voor kwalificatie ──────────────────────────────
+races = race_coordinator.data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+now = datetime.now(timezone.utc).date()
 
-    past_race = None
+target_round = None
+
+for race in races:
+    date_str = race.get("date")
+    try:
+        race_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        continue
+
+    # Bepaal de donderdag van de raceweek
+    race_week_thursday = race_date - timedelta(days=(race_date.weekday() - 3) % 7)
+
+    if race_week_thursday <= now <= race_date:
+        # We zitten in de raceweek (tussen donderdag en racedag)
+        target_round = int(race.get("round", "0"))
+        break
+
+# Als er geen raceweek is, pak dan eerstvolgende race
+if not target_round:
     for race in races:
-        date = race.get("date")
-        time = race.get("time", "00:00:00Z")
-        dt_str = f"{date}T{time}".replace("Z", "+00:00")
         try:
-            race_dt = datetime.fromisoformat(dt_str)
-        except ValueError:
+            race_date = datetime.strptime(race.get("date"), "%Y-%m-%d").date()
+        except (ValueError, TypeError):
             continue
-        if race_dt > now:
+        if race_date > now:
+            target_round = int(race.get("round", "0"))
             break
-        past_race = race
 
-    weekday = now.weekday()  # 0 = maandag, ..., 6 = zondag
-    _LOGGER.debug("Huidige weekday (UTC): %s", weekday)
+# Fallback
+if not target_round:
+    target_round = 1
 
-    if weekday >= 3:
-        # Vanaf donderdag: gebruik huidige race (deze week)
-        target_round = int(past_race.get("round", "0")) if past_race else 1
-    else:
-        # Tot woensdag: gebruik vorige race
-        target_round = int(past_race.get("round", "0")) - 1 if past_race else 1
+qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
+_LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
 
-    qualifying_url = f"https://api.jolpi.ca/ergast/f1/current/{target_round}/qualifying.json"
-    _LOGGER.debug("F1 Qualifying URL: %s", qualifying_url)
-
-    last_qualifying_coordinator = F1DataCoordinator(
-        hass, qualifying_url, "F1 Last Qualifying Results Coordinator"
-    )
-    await last_qualifying_coordinator.async_config_entry_first_refresh()
+last_qualifying_coordinator = F1DataCoordinator(
+    hass, qualifying_url, "F1 Last Qualifying Results Coordinator"
+)
+await last_qualifying_coordinator.async_config_entry_first_refresh()
 
     # ─── Registreren van coordinators ─────────────────────────────────────────
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
